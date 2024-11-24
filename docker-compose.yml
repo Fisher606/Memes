@@ -1,0 +1,58 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - media_service
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@db:5432/memes_db"
+
+  media_service:
+    build:
+      context: ./media_service
+      dockerfile: ./Dockerfile.media
+    ports:
+      - "8001:8001"
+    depends_on:
+      - minio
+    environment:
+      MINIO_ENDPOINT: "http://minio:9000"
+      MINIO_ACCESS_KEY: "minioadmin"
+      MINIO_SECRET_KEY: "minioadmin"
+      MINIO_BUCKET_NAME: "memes"
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: memes_db
+    ports:
+      - "5432:5432"
+
+  minio:
+    image: minio/minio:latest
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+    volumes:
+      - minio_data:/data
+
+  minio_console:
+    image: minio/console:latest
+    environment:
+      CONSOLE_MINIO_SERVER: "http://minio:9000"
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9001:9001"
+
+volumes:
+  minio_data:
